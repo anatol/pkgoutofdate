@@ -1,0 +1,7 @@
+Checks whether Arch packages are out-of-date
+
+The script parses PKGBUILD files in /var/abs, gets sources urls from the files and then
+tries to check whether server has files that look like 'X.Y.Z+1' 'X.Y+1.0' 'X+1.0.0'
+
+To run the script first update the abs files 'sudo abs' then run the script itself './pkgoutofdate.rb'
+See './pkgoutofdate.rb --help' for more options.
