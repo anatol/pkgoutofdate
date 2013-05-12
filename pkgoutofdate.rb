@@ -189,6 +189,8 @@ OptionParser.new do |opts|
     X.Y.Z+1, X.Y+1.0 and X+1.0.0 versions. If server responses OK for such urls then
     the tool assumes a new release available.
 
+    Before running this tool, please update your ABS repo - 'sudo abs'.
+
     Usage: pkgoutofdate.rb [options] [package_name]
   eos
 
