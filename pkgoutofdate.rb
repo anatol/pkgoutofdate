@@ -138,13 +138,13 @@ def process_pkgbuild(pkgpath)
 end
 
 # list of PKBUILD files to process
-def find_all_packages(repos_dir, quick_package)
+def find_all_packages(repos_dir, quick_packages)
   result = []
 
   for path in Dir.glob(repos_dir + '/*/*') do
     pkgname = File.basename(path)
 
-    if quick_package and (quick_package != pkgname) then
+    if !quick_packages.empty? and !quick_packages.include?(pkgname) then
       next
     end
 
@@ -189,7 +189,7 @@ OptionParser.new do |opts|
     X.Y.Z+1, X.Y+1.0 and X+1.0.0 versions. If server responses OK for such urls then
     the tool assumes a new release available.
 
-    Usage: pkgoutofdate.rb [options] [package_name]
+    Usage: pkgoutofdate.rb [options] [package_name]...
   eos
 
   # default value
@@ -204,10 +204,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-# Instead of checking all ABS tree we could quickly check only 1 package
-quick_package = ARGV[0]
-
-queue = find_all_packages(PACKAGES_DIR, quick_package)
+queue = find_all_packages(PACKAGES_DIR, ARGV)
 if queue.empty? then
   log "No packages found!"
   exit 1
