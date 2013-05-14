@@ -6,7 +6,7 @@ require 'thread'
 require 'uri'
 
 # Use abs packages to find current Arch versions
-PACKAGES_DIR = '/var/abs'
+ABS_DIR = '/var/abs'
 VERSION_DELEMITER_REGEX = '[\._\-]'
 
 $options = OpenStruct.new
@@ -105,6 +105,9 @@ def process_pkgbuild(pkgpath)
     return
   end
 
+  # Special case for custom directories. We can filter these packages at this stage only.
+  return if not $options.is_abs and not $options.pkg_whitelist.empty? and not $options.pkg_whitelist.include?(pkgname)
+
   return if sources.empty?
 
   sources.map! {|s| s.gsub(/(.*::)/, '') }
@@ -138,21 +141,21 @@ def process_pkgbuild(pkgpath)
 end
 
 # list of PKBUILD files to process
-def find_all_packages(repos_dir, quick_packages)
+def find_abs_packages()
   result = []
 
-  for path in Dir.glob(repos_dir + '/*/*') do
+  for path in Dir.glob(ABS_DIR + '/*/*') do
     pkgname = File.basename(path)
 
-    if !quick_packages.empty? and !quick_packages.include?(pkgname) then
+    if !$options.pkg_whitelist.empty? and !$options.pkg_whitelist.include?(pkgname) then
       next
     end
 
     # skip if this package presents in testing
     testing = '/testing/' + pkgname
-    next if File.exists?(repos_dir + testing) and not path.end_with?(testing)
+    next if File.exists?(ABS_DIR + testing) and not path.end_with?(testing)
     testing = '/community-testing/' + pkgname
-    next if File.exists?(repos_dir + testing) and not path.end_with?(testing)
+    next if File.exists?(ABS_DIR + testing) and not path.end_with?(testing)
 
     pkgpath = path + '/PKGBUILD'
     next unless File.exists?(pkgpath)
@@ -161,6 +164,11 @@ def find_all_packages(repos_dir, quick_packages)
   end
 
   return result
+end
+
+# find all packages in non-ABS directory
+def find_custom_packages()
+  return `find "#{$options.directory}" -name PKGBUILD -print0`.split("\0")
 end
 
 QUEUE_MUTEX = Mutex.new # protects queue of PKGBUILD to process
@@ -176,26 +184,23 @@ def work_thread(queue)
   end
 end
 
-unless File.directory? PACKAGES_DIR
-  puts "Abs directory #{PACKAGES_DIR} does not exist"
-  exit 1
-end
-
 
 OptionParser.new do |opts|
   opts.banner = <<-eos
     Tool that checks whether new releases available for Arch packages.
-    Tool iterates over ABS directory, extracts downloadable url and tries to probe
+    Tool iterates over packages directory, extracts downloadable url and tries to probe
     X.Y.Z+1, X.Y+1.0 and X+1.0.0 versions. If server responses OK for such urls then
     the tool assumes a new release available.
 
-    Before running this tool, please update your ABS repo - 'sudo abs'.
+    By default the tool uses ABS directory, but one can use '-d' to specify custom dir.
+    Before running this tool on ABS dir, please update your ABS repo - 'sudo abs'.
 
     Usage: pkgoutofdate.rb [options] [package_name]...
   eos
 
   # default value
   $options.threads_num = 12
+  $options.is_abs = true
 
   opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
     $options.verbose = v
@@ -204,9 +209,26 @@ OptionParser.new do |opts|
   opts.on("--threads_num T", Integer, "Number of thread used for URL polling") do |t|
     $options.threads_num = t
   end
+
+  opts.on("-d", "--directory D", String, "Directory where to scan for PKGBUILD files") do |d|
+    unless File.directory?(d)
+      puts "'#{d}' is not a direcotry with PKGBUILD files"
+      break
+    end
+
+    $options.directory = d
+    $options.is_abs = false
+  end
 end.parse!
 
-queue = find_all_packages(PACKAGES_DIR, ARGV)
+$options.pkg_whitelist = ARGV
+
+queue = if $options.is_abs
+  find_abs_packages()
+else
+  find_custom_packages()
+end
+
 if queue.empty? then
   log "No packages found!"
   exit 1
