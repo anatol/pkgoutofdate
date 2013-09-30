@@ -98,12 +98,13 @@ def process_pkgbuild(pkgpath)
 
   pkgname = sources.shift
   pkgver = sources.shift
-  pkgver_regex = Regexp.new(pkgver.gsub(/#{VERSION_DELEMITER_REGEX}/, VERSION_DELEMITER_REGEX) + '\b')
 
-  unless pkgname then
-    log "Cannot parse #{pkgpath}, no pkgname" if $options.verbose
+  unless pkgname or pkgver then
+    log "Cannot parse #{pkgpath}, no pkgname or pkgversion" if $options.verbose
     return
   end
+
+  pkgver_regex = Regexp.new(pkgver.gsub(/#{VERSION_DELEMITER_REGEX}/, VERSION_DELEMITER_REGEX) + '\b')
 
   # Special case for custom directories. We can filter these packages at this stage only.
   return if not $options.is_abs and not $options.pkg_whitelist.empty? and not $options.pkg_whitelist.include?(pkgname)
