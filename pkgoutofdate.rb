@@ -201,7 +201,6 @@ OptionParser.new do |opts|
 
   # default value
   $options.threads_num = 12
-  $options.is_abs = true
 
   opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
     $options.verbose = v
@@ -211,18 +210,34 @@ OptionParser.new do |opts|
     $options.threads_num = t
   end
 
+  opts.on("--abs", "Parse abs files") do |abs|
+    $options.is_abs = abs
+  end
+
   opts.on("-d", "--directory D", String, "Directory where to scan for PKGBUILD files") do |d|
     unless File.directory?(d)
-      puts "'#{d}' is not a direcotry with PKGBUILD files"
-      break
+      puts "'#{d}' is not a direcotry"
+      exit
     end
 
     $options.directory = d
-    $options.is_abs = false
   end
 end.parse!
 
 $options.pkg_whitelist = ARGV
+
+if not $options.is_abs and $options.directory == '.' then
+  puts "Current directory is scanned by default if --abs flag is not used. So you can skip '-d .' now."
+end
+
+if $options.is_abs and $options.directory then
+  puts "--abs and -d flags cannot be specified at the same time"
+  exit
+end
+
+if not $options.is_abs and not $options.directory
+  $options.directory = Dir.pwd
+end
 
 queue = if $options.is_abs
   find_abs_packages()
