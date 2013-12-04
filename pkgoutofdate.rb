@@ -20,10 +20,10 @@ def log(message)
   }
 end
 
-WEIRD_CORRECT_TYPES = %w(.gz)
+WEIRD_CORRECT_TYPES = %w(binary/octet-stream .gz)
 APP_INCORRECT_TYPES = %w(xml)
 def correct_content_type?(type)
-# TODO: cut '; charset=utf-8' from type
+  type.gsub!(/; charset=.*/, '') if type
 
   # content type should be 'application/XXX' where XXX one of the archive types
   return false unless type
