@@ -11,8 +11,8 @@ VERSION_DELEMITER_REGEX = '[\._\-]'
 
 $options = OpenStruct.new
 
-
 OUTPUT_MUTEX = Mutex.new # serializes output to console
+
 def log(message)
   OUTPUT_MUTEX.synchronize {
     # write directly to file descriptor to avoid client side buffering
@@ -22,6 +22,7 @@ end
 
 WEIRD_CORRECT_TYPES = %w(binary/octet-stream .gz)
 APP_INCORRECT_TYPES = %w(xml)
+
 def correct_content_type?(type)
   type.gsub!(/; charset=.*/, '') if type
 
@@ -44,7 +45,7 @@ def url_exists?(url)
     system("curl --head -s -o /dev/null --fail #{url}")
   when host =~ /.+?\.googlecode\.com/
     # thank you googlecode for this bug https://code.google.com/p/support/issues/detail?id=660
-    header = "If-Modified-Since: Tue, 11 Dec #{Time.now.year+1} 10:10:24 GMT"
+    header = "If-Modified-Since: Tue, 11 Dec #{Time.now.year + 1} 10:10:24 GMT"
     system(%Q{curl --get -s -o /dev/null -w "%{http_code}" --header "#{header}" "#{url}" | grep -q 304})
   when %w(http https).include?(uri.scheme)
     type = `curl --head -L -s -o /dev/null -w "%{content_type}" "#{url}"`
@@ -66,9 +67,9 @@ def next_versions(ver, pkgname)
   # split is array of <number> <delemiter> <number> <develemiter> .. <number>
   reminder = []
 
-  while true do
+  while true
     numpart = split.pop
-    unless numpart =~ /\d+/ then
+    unless numpart =~ /\d+/
       log "#{pkgname}: unable to parse version #{ver} numpart is #{numpart}" if $options.verbose
       break
     end
@@ -80,7 +81,7 @@ def next_versions(ver, pkgname)
 
     reminder.unshift("0")
     delimiter = split.pop
-    unless delimiter =~ /#{VERSION_DELEMITER_REGEX}/ then
+    unless delimiter =~ /#{VERSION_DELEMITER_REGEX}/
       log "{pkgname}: unable to parse version #{ver} delimiter is #{delimiter}" if $options.verbose
       break
     end
@@ -99,7 +100,7 @@ def process_pkgbuild(pkgpath)
   pkgname = sources.shift
   pkgver = sources.shift
 
-  unless pkgname or pkgver then
+  unless pkgname or pkgver
     log "Cannot parse #{pkgpath}, no pkgname or pkgversion" if $options.verbose
     return
   end
@@ -111,24 +112,24 @@ def process_pkgbuild(pkgpath)
 
   return if sources.empty?
 
-  sources.map! {|s| s.gsub(/(.*::)/, '') }
+  sources.map! { |s| s.gsub(/(.*::)/, '') }
 
-  sources.delete_if {|s| s !~ %r{^(http|https|ftp)://} }
-  sources.delete_if {|s| s !~ pkgver_regex }
+  sources.delete_if { |s| s !~ %r{^(http|https|ftp)://} }
+  sources.delete_if { |s| s !~ pkgver_regex }
 
-  if sources.empty? then
+  if sources.empty?
     log "#{pkgname}: cannot find source urls in #{pkgpath}" if $options.verbose
     return
   end
 
   source = sources[0]
-  unless url_exists?(source) then
+  unless url_exists?(source)
     log "#{pkgname}: file does not exist on the server - #{pkgver} => #{sources}" if $options.verbose
   end
 
-  for newver in next_versions(pkgver, pkgname) do
+  for newver in next_versions(pkgver, pkgname)
     newurl = source.gsub(pkgver_regex, newver)
-    if url_exists?(newurl) then
+    if url_exists?(newurl)
       if url_exists?(source.gsub(pkgver_regex, pkgver + '102.2'))
         # we requested some weird version and server responded positively. weird....
         log "#{pkgname}: server responses 'file exists' for invalid version #{newurl}" if $options.verbose
@@ -145,10 +146,10 @@ end
 def find_abs_packages()
   result = []
 
-  for path in Dir.glob(ABS_DIR + '/*/*') do
+  for path in Dir.glob(ABS_DIR + '/*/*')
     pkgname = File.basename(path)
 
-    if !$options.pkg_whitelist.empty? and !$options.pkg_whitelist.include?(pkgname) then
+    if !$options.pkg_whitelist.empty? and !$options.pkg_whitelist.include?(pkgname)
       next
     end
 
@@ -173,8 +174,9 @@ def find_custom_packages()
 end
 
 QUEUE_MUTEX = Mutex.new # protects queue of PKGBUILD to process
+
 def work_thread(queue)
-  while true do
+  while true
     pkg = nil
     QUEUE_MUTEX.synchronize {
       pkg = queue.pop
@@ -184,7 +186,6 @@ def work_thread(queue)
     process_pkgbuild(pkg)
   end
 end
-
 
 OptionParser.new do |opts|
   opts.banner = <<-eos
@@ -226,11 +227,11 @@ end.parse!
 
 $options.pkg_whitelist = ARGV
 
-if not $options.is_abs and $options.directory == '.' then
+if not $options.is_abs and $options.directory == '.'
   puts "Current directory is scanned by default if --abs flag is not used. So you can skip '-d .' now."
 end
 
-if $options.is_abs and $options.directory then
+if $options.is_abs and $options.directory
   puts "--abs and -d flags cannot be specified at the same time"
   exit
 end
@@ -240,19 +241,19 @@ if not $options.is_abs and not $options.directory
 end
 
 queue = if $options.is_abs
-  find_abs_packages()
-else
-  find_custom_packages()
-end
+          find_abs_packages()
+        else
+          find_custom_packages()
+        end
 
-if queue.empty? then
+if queue.empty?
   log "No packages found!"
   exit 1
 end
 
 threads = []
 threads_num = [$options.threads_num, queue.size].min
-for i in 1..threads_num do
+for i in 1..threads_num
   threads << Thread.new { work_thread(queue) }
 end
 threads.each { |thr| thr.join }
