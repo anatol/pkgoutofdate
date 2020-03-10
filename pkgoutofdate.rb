@@ -1,12 +1,12 @@
 #!/usr/bin/ruby
 
-require 'ostruct'
-require 'optparse'
-require 'thread'
-require 'uri'
+require "ostruct"
+require "optparse"
+require "thread"
+require "uri"
 
 # Use abs packages to find current Arch versions
-ABS_DIR = '/var/abs'
+ABS_DIR = "/var/abs"
 VERSION_DELEMITER_REGEX = '[\._\-]'
 
 $options = OpenStruct.new
@@ -24,12 +24,12 @@ WEIRD_CORRECT_TYPES = %w(binary/octet-stream .gz)
 APP_INCORRECT_TYPES = %w(xml)
 
 def correct_content_type?(type)
-  type.gsub!(/; charset=.*/, '') if type
+  type.gsub!(/; charset=.*/, "") if type
 
   # content type should be 'application/XXX' where XXX one of the archive types
   return false unless type
   return true if WEIRD_CORRECT_TYPES.include?(type)
-  return false unless type.start_with?('application/')
+  return false unless type.start_with?("application/")
   return !APP_INCORRECT_TYPES.include?(type[12..-1])
 end
 
@@ -37,10 +37,10 @@ def url_exists?(url)
   uri = URI.parse(url)
   host = uri.host
   # cut leading www if any
-  host = host[4..-1] if host.start_with?('www.')
+  host = host[4..-1] if host.start_with?("www.")
 
   case
-  when ['ladspa.org', 'download.videolan.org', 'launchpad.net'].include?(host)
+  when ["ladspa.org", "download.videolan.org", "launchpad.net"].include?(host)
     # this site returns content type == 'text' for files
     system("curl --head -s -o /dev/null --fail #{url}")
   when host =~ /.+?\.googlecode\.com/
@@ -112,7 +112,7 @@ def process_pkgbuild(pkgpath)
 
   return if sources.empty?
 
-  sources.map! { |s| s.gsub(/(.*::)/, '') }
+  sources.map! { |s| s.gsub(/(.*::)/, "") }
 
   sources.delete_if { |s| s !~ %r{^(http|https|ftp)://} }
   sources.delete_if { |s| s !~ pkgver_regex }
@@ -130,7 +130,7 @@ def process_pkgbuild(pkgpath)
   for newver in next_versions(pkgver, pkgname)
     newurl = source.gsub(pkgver_regex, newver)
     if url_exists?(newurl)
-      if url_exists?(source.gsub(pkgver_regex, pkgver + '102.2'))
+      if url_exists?(source.gsub(pkgver_regex, pkgver + "102.2"))
         # we requested some weird version and server responded positively. weird....
         log "#{pkgname}: server responses 'file exists' for invalid version #{newurl}" if $options.verbose
       else
@@ -146,7 +146,7 @@ end
 def find_abs_packages()
   result = []
 
-  for path in Dir.glob(ABS_DIR + '/*/*')
+  for path in Dir.glob(ABS_DIR + "/*/*")
     pkgname = File.basename(path)
 
     if !$options.pkg_whitelist.empty? and !$options.pkg_whitelist.include?(pkgname)
@@ -154,12 +154,12 @@ def find_abs_packages()
     end
 
     # skip if this package presents in testing
-    testing = '/testing/' + pkgname
+    testing = "/testing/" + pkgname
     next if File.exists?(ABS_DIR + testing) and not path.end_with?(testing)
-    testing = '/community-testing/' + pkgname
+    testing = "/community-testing/" + pkgname
     next if File.exists?(ABS_DIR + testing) and not path.end_with?(testing)
 
-    pkgpath = path + '/PKGBUILD'
+    pkgpath = path + "/PKGBUILD"
     next unless File.exists?(pkgpath)
 
     result << pkgpath
@@ -227,7 +227,7 @@ end.parse!
 
 $options.pkg_whitelist = ARGV
 
-if not $options.is_abs and $options.directory == '.'
+if not $options.is_abs and $options.directory == "."
   puts "Current directory is scanned by default if --abs flag is not used. So you can skip '-d .' now."
 end
 
@@ -241,10 +241,10 @@ if not $options.is_abs and not $options.directory
 end
 
 queue = if $options.is_abs
-          find_abs_packages()
-        else
-          find_custom_packages()
-        end
+    find_abs_packages()
+  else
+    find_custom_packages()
+  end
 
 if queue.empty?
   log "No packages found!"
