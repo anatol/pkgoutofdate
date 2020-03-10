@@ -141,8 +141,8 @@ def process_pkgbuild(pkgpath)
   end
 end
 
-def find_custom_packages()
-  return `find "#{$options.directory}" -name PKGBUILD -print0`.split("\0")
+def find_packages
+  Dir.glob("**/trunk/PKGBUILD")
 end
 
 QUEUE_MUTEX = Mutex.new # protects queue of PKGBUILD to process
@@ -200,7 +200,7 @@ if not $options.directory
   $options.directory = Dir.pwd
 end
 
-queue = find_custom_packages()
+queue = find_packages()
 
 if queue.empty?
   log "No packages found!"
