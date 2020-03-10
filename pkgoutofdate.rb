@@ -6,6 +6,7 @@ require "thread"
 require "uri"
 
 VERSION_DELEMITER_REGEX = '[\._\-]'
+CURRENT_DIR = File.expand_path(File.dirname(__FILE__))
 
 $options = OpenStruct.new
 
@@ -93,7 +94,7 @@ def process_pkgbuild(pkgpath)
   pkgcontent = IO.read(pkgpath).force_encoding("ISO-8859-1").encode("utf-8", replace: nil)
 
   # instead of doing crazy regexp parsing let's shell do it
-  sources = `bash -c "./parse_pkgbuild.sh #{pkgpath}"`.split("\n")
+  sources = `bash -c "#{CURRENT_DIR}/parse_pkgbuild.sh #{pkgpath}"`.split("\n")
 
   pkgname = sources.shift
   pkgver = sources.shift
