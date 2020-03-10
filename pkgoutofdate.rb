@@ -5,8 +5,6 @@ require "optparse"
 require "thread"
 require "uri"
 
-# Use abs packages to find current Arch versions
-ABS_DIR = "/var/abs"
 VERSION_DELEMITER_REGEX = '[\._\-]'
 
 $options = OpenStruct.new
@@ -108,7 +106,7 @@ def process_pkgbuild(pkgpath)
   pkgver_regex = Regexp.new(pkgver.gsub(/#{VERSION_DELEMITER_REGEX}/, VERSION_DELEMITER_REGEX) + '\b')
 
   # Special case for custom directories. We can filter these packages at this stage only.
-  return if not $options.is_abs and not $options.pkg_whitelist.empty? and not $options.pkg_whitelist.include?(pkgname)
+  return if not $options.pkg_whitelist.empty? and not $options.pkg_whitelist.include?(pkgname)
 
   return if sources.empty?
 
@@ -142,33 +140,6 @@ def process_pkgbuild(pkgpath)
   end
 end
 
-# list of PKBUILD files to process
-def find_abs_packages()
-  result = []
-
-  for path in Dir.glob(ABS_DIR + "/*/*")
-    pkgname = File.basename(path)
-
-    if !$options.pkg_whitelist.empty? and !$options.pkg_whitelist.include?(pkgname)
-      next
-    end
-
-    # skip if this package presents in testing
-    testing = "/testing/" + pkgname
-    next if File.exists?(ABS_DIR + testing) and not path.end_with?(testing)
-    testing = "/community-testing/" + pkgname
-    next if File.exists?(ABS_DIR + testing) and not path.end_with?(testing)
-
-    pkgpath = path + "/PKGBUILD"
-    next unless File.exists?(pkgpath)
-
-    result << pkgpath
-  end
-
-  return result
-end
-
-# find all packages in non-ABS directory
 def find_custom_packages()
   return `find "#{$options.directory}" -name PKGBUILD -print0`.split("\0")
 end
@@ -194,9 +165,6 @@ OptionParser.new do |opts|
     X.Y.Z+1, X.Y+1.0 and X+1.0.0 versions. If server responses OK for such urls then
     the tool assumes a new release available.
 
-    By default the tool uses ABS directory, but one can use '-d' to specify custom dir.
-    Before running this tool on ABS dir, please update your ABS repo - 'sudo abs'.
-
     Usage: pkgoutofdate.rb [options] [package_name]...
   eos
 
@@ -211,10 +179,6 @@ OptionParser.new do |opts|
     $options.threads_num = t
   end
 
-  opts.on("--abs", "Parse abs files") do |abs|
-    $options.is_abs = abs
-  end
-
   opts.on("-d", "--directory D", String, "Directory where to scan for PKGBUILD files") do |d|
     unless File.directory?(d)
       puts "'#{d}' is not a direcotry"
@@ -227,24 +191,15 @@ end.parse!
 
 $options.pkg_whitelist = ARGV
 
-if not $options.is_abs and $options.directory == "."
-  puts "Current directory is scanned by default if --abs flag is not used. So you can skip '-d .' now."
+if $options.directory == "."
+  puts "Current directory is scanned by default"
 end
 
-if $options.is_abs and $options.directory
-  puts "--abs and -d flags cannot be specified at the same time"
-  exit
-end
-
-if not $options.is_abs and not $options.directory
+if not $options.directory
   $options.directory = Dir.pwd
 end
 
-queue = if $options.is_abs
-    find_abs_packages()
-  else
-    find_custom_packages()
-  end
+queue = find_custom_packages()
 
 if queue.empty?
   log "No packages found!"
