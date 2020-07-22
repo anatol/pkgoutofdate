@@ -142,7 +142,8 @@ def process_pkgbuild(pkgpath)
 end
 
 def find_packages
-  Dir.glob("**/trunk/PKGBUILD")
+  # handle both flat and Arch-style directory structure
+  Dir.glob("*/PKGBUILD") + Dir.glob("*/trunk/PKGBUILD")
 end
 
 QUEUE_MUTEX = Mutex.new # protects queue of PKGBUILD to process
