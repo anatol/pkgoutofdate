@@ -63,7 +63,7 @@ def next_versions(ver, pkgname)
   # version delimiters are [._-]
   split = ver.scan(/[\da-zA-Z]+|#{VERSION_DELEMITER_REGEX}/)
 
-  # split is array of <number> <delemiter> <number> <develemiter> .. <number>
+  # split is array of <number> <delimiter> <number> <delimiter> .. <number>
   reminder = []
 
   while true
@@ -183,7 +183,7 @@ OptionParser.new do |opts|
 
   opts.on("-d", "--directory D", String, "Directory where to scan for PKGBUILD files") do |d|
     unless File.directory?(d)
-      puts "'#{d}' is not a direcotry"
+      puts "'#{d}' is not a directory"
       exit
     end
 
