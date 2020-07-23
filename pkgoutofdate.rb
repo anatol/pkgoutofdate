@@ -193,12 +193,8 @@ end.parse!
 
 $options.pkg_whitelist = ARGV
 
-if $options.directory == "."
-  puts "Current directory is scanned by default"
-end
-
-if not $options.directory
-  $options.directory = Dir.pwd
+if $options.directory
+  Dir.chdir $options.directory
 end
 
 queue = find_packages()
