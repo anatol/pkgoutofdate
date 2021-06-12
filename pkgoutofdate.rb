@@ -122,6 +122,12 @@ def process_pkgbuild(pkgpath)
   end
 
   source = sources[0]
+  source.strip!
+
+  # Some of the Arch packages have non-compliant source urls. Fix it.
+  # See https://github.com/anatol/pkgoutofdate/issues/4
+  source.gsub!(' ', '%20')
+
   unless url_exists?(source)
     log "#{pkgname}: file does not exist on the server - #{pkgver} => #{sources}" if $options.verbose
   end
