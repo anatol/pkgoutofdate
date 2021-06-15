@@ -99,8 +99,8 @@ def process_pkgbuild(pkgpath)
   pkgname = sources.shift
   pkgver = sources.shift
 
-  unless pkgname or pkgver
-    log "Cannot parse #{pkgpath}, no pkgname or pkgversion" if $options.verbose
+  unless pkgname and pkgver
+    log "Cannot parse #{pkgpath}, no pkgname and pkgversion" if $options.verbose
     return
   end
 
